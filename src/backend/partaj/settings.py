@@ -161,6 +161,7 @@ class Base(SendinblueMixin, DRFMixin, Configuration):
         "rest_framework",
         "rest_framework.authtoken",
         "impersonate",
+        "parler",
     ]
 
     MIDDLEWARE = [
@@ -246,6 +247,7 @@ class Base(SendinblueMixin, DRFMixin, Configuration):
     # Default language for the app. If the LocaleMiddleware is not enabled (which is the case
     # here), this will be the language for all users.
     LANGUAGE_CODE = "fr"
+    PARLER_DEFAULT_LANGUAGE_CODE = "en"
 
     # Careful! Languages should be ordered by priority, as this tuple is used to get
     # fallback/default languages throughout the app.

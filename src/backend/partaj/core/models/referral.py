@@ -10,6 +10,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from django_fsm import FSMField, RETURN_VALUE, transition
+from parler.models import TranslatableModel, TranslatedField, TranslatedFieldsModel
 
 from ..email import Mailer
 from .attachment import ReferralAnswerAttachment
@@ -22,6 +23,55 @@ class ReferralState(models.TextChoices):
     CLOSED = "closed", _("Closed")
     INCOMPLETE = "incomplete", _("Incomplete")
     ANSWERED = "answered", _("Answered")
+
+
+class ReferralUrgency(TranslatableModel):
+    """
+    Referral urgency model.
+    Instances of this model should only be created by administrators.
+    """
+
+    name = TranslatedField()
+    duration = models.DurationField(
+        verbose_name=_("duration"), help_text=_("Expected treatment duration")
+    )
+    requires_justification = models.BooleanField(
+        verbose_name=_("requires justification"),
+        help_text=_("Whether to require a justification when this urgency is selected"),
+    )
+
+    class Meta:
+        db_table = "partaj_referral_urgency"
+        verbose_name = _("referral urgency")
+
+    def __str__(self):
+        """Human representation of a referral urgency."""
+        return "{model}: {name}".format(
+            model=self._meta.verbose_name.title(), name=self.name
+        )
+
+
+class ReferralUrgencyTranslation(TranslatedFieldsModel):
+    """
+    Referral urgency Translation model.
+    Django parler model linked to the ReferralUrgency to internationalize the fields.
+    """
+
+    master = models.ForeignKey(
+        ReferralUrgency, models.CASCADE, related_name="translations"
+    )
+    name = models.CharField(_("name"), max_length=200)
+
+    class Meta:
+        db_table = "partaj_referral_urgency_translation"
+        unique_together = ("language_code", "master")
+        verbose_name = _("referral urgency translation")
+
+    def __str__(self):
+        """Human representation of a referral urgency translation."""
+        return "{model}: {name}".format(
+            model=self._meta.verbose_name.title(), name=self.name
+        )
 
 
 class Referral(models.Model):
@@ -80,6 +130,15 @@ class Referral(models.Model):
         max_length=2,
         choices=URGENCY_CHOICES,
         blank=True,
+    )
+    urgency_level = models.ForeignKey(
+        verbose_name=_("urgency"),
+        help_text=_("Urgency level. When is the referral answer needed?"),
+        to=ReferralUrgency,
+        on_delete=models.PROTECT,
+        related_name="+",
+        blank=True,
+        null=True,
     )
     urgency_explanation = models.TextField(
         verbose_name=_("urgency explanation"),
