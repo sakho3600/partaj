@@ -2,7 +2,10 @@
 Admin of the `core` app of the Partaj project.
 """
 from django.contrib import admin
+from django.utils import translation
 from django.utils.translation import gettext_lazy as _
+
+from parler.admin import TranslatableAdmin
 
 from . import models
 
@@ -173,6 +176,37 @@ class ReferralAnswerInline(admin.TabularInline):
     model = models.ReferralAnswer
 
 
+class ReferralUrgencyTranslationInline(admin.TabularInline):
+    """
+    Let referral urgency translations for each language be displayed on the referral urgency
+    admin view.
+    """
+
+    model = models.ReferralUrgencyTranslation
+
+
+@admin.register(models.ReferralUrgency)
+class ReferralUrgencyAdmin(TranslatableAdmin):
+    """
+    Admin setup for referral urgencies.
+    """
+
+    inlines = [ReferralUrgencyTranslationInline]
+
+    fieldsets = (
+        (_("Meta information"), {"fields": ("duration", "requires_justification")}),
+    )
+
+    list_display = ("get_name", "duration")
+
+    def get_name(self, referral_urgency):
+        """
+        Return the correct parler language for django's contextual current language.
+        """
+        referral_urgency.set_current_language(translation.get_language())
+        return referral_urgency.name
+
+
 @admin.register(models.Referral)
 class ReferralAdmin(admin.ModelAdmin):
     """
@@ -195,7 +229,15 @@ class ReferralAdmin(admin.ModelAdmin):
         (_("Identification"), {"fields": ["id"]}),
         (
             _("Timing information"),
-            {"fields": ["created_at", "updated_at", "urgency", "urgency_explanation"]},
+            {
+                "fields": [
+                    "created_at",
+                    "updated_at",
+                    "urgency",
+                    "urgency_level",
+                    "urgency_explanation",
+                ]
+            },
         ),
         (_("Requester information"), {"fields": ["user", "requester"]},),
         (_("Metadata"), {"fields": ["topic", "state"]}),
